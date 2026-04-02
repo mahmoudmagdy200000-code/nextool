@@ -1,0 +1,6 @@
+@NexaPMS.LeadGeneration.Api_HostAddress = http://localhost:5246
+
+GET {{NexaPMS.LeadGeneration.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

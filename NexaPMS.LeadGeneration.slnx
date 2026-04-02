@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="NexaPMS.LeadGeneration.Api/NexaPMS.LeadGeneration.Api.csproj" />
+  <Project Path="NexaPMS.LeadGeneration.Application/NexaPMS.LeadGeneration.Application.csproj" />
+  <Project Path="NexaPMS.LeadGeneration.Domain/NexaPMS.LeadGeneration.Domain.csproj" />
+  <Project Path="NexaPMS.LeadGeneration.Infrastructure/NexaPMS.LeadGeneration.Infrastructure.csproj" />
+</Solution>
