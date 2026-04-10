@@ -55,8 +55,10 @@ export const DesktopLeadTable: React.FC<DesktopLeadTableProps> = ({
         <tbody className="divide-y divide-slate-100">
           {loading ? (
             Array(5).fill(0).map((_, i) => <SkeletonRow key={i} />)
-          ) : leads.map(lead => (
-            <tr key={lead.id} className="hover:bg-gray-50 transition-colors group">
+          ) : leads.map(lead => {
+            const isContacted = lead.status === 'Contacted';
+            return (
+            <tr key={lead.id} className={`${isContacted ? 'bg-emerald-50/30 hover:bg-emerald-50/60' : 'hover:bg-gray-50'} transition-colors group`}>
               <td className="py-4 px-4">
                 <div className="flex flex-col">
                    <span className="text-base font-semibold text-slate-900">{lead.name}</span>
@@ -86,7 +88,7 @@ export const DesktopLeadTable: React.FC<DesktopLeadTableProps> = ({
               </td>
               <td className="py-4 px-4 text-center">{getStatusBadge(lead.status || 'New')}</td>
               
-              <td className="py-4 px-4 text-right sticky right-0 bg-white group-hover:bg-gray-50 transition-colors shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)] border-l border-transparent z-10">
+              <td className={`py-4 px-4 text-right sticky right-0 ${isContacted ? 'bg-[#f0fdf6] group-hover:bg-[#e1f9ee]' : 'bg-white group-hover:bg-gray-50'} transition-colors shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)] border-l border-transparent z-10`}>
                 <div className="flex justify-end gap-2 opacity-90 group-hover:opacity-100 transition-all">
                   {!isSaved && onSave && (
                     <button 
@@ -122,7 +124,8 @@ export const DesktopLeadTable: React.FC<DesktopLeadTableProps> = ({
                 </div>
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>

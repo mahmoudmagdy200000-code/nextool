@@ -30,6 +30,6 @@ export const WhatsAppService = {
     }
     
     const encodedMessage = encodeURIComponent(finalMessage);
-    return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
+    return `whatsapp://send?phone=${formattedPhone}&text=${encodedMessage}`;
   }
 };

@@ -149,7 +149,7 @@ const Dashboard: React.FC = () => {
       leadAddress: lead?.address,
       businessType: lead?.businessType
     });
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.location.href = url;
 
     if (isSaved) {
       apiClient.patch(`/leads/${leadId}/status?status=Contacted`).catch(_ => {
@@ -197,7 +197,7 @@ const Dashboard: React.FC = () => {
   const handleAiSendWhatsApp = () => {
     if (!activeLeadForAi || !activeLeadForAi.phoneNumber) return;
     const url = WhatsAppService.generateWhatsAppUrl(activeLeadForAi.phoneNumber, aiGeneratedText);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.location.href = url;
     
     apiClient.patch(`/leads/${activeLeadForAi.id}/status?status=Contacted`).catch(console.error);
     updateLeadStatus(activeLeadForAi.id, "Contacted");

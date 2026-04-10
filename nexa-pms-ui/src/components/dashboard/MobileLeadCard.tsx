@@ -12,8 +12,10 @@ interface MobileLeadCardProps {
 }
 
 export const MobileLeadCard: React.FC<MobileLeadCardProps> = ({ lead, isSaved, onAiMagic, onWhatsApp, onSave, onDelete }) => {
+  const isContacted = lead.status === 'Contacted';
+  
   return (
-    <div className="bg-white p-5 rounded-2xl shadow-sm hover:shadow-md border border-slate-200 transition-all flex flex-col relative overflow-hidden">
+    <div className={`${isContacted ? 'bg-emerald-50/50 border-emerald-200' : 'bg-white border-slate-200'} p-5 rounded-2xl shadow-sm hover:shadow-md border transition-all flex flex-col relative overflow-hidden`}>
       <div className="flex justify-between items-start mb-3">
         <div className="pr-16">
           <h3 className="text-lg font-semibold text-slate-900 leading-tight">{lead.name}</h3>
