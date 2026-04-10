@@ -24,40 +24,44 @@ public class GooglePlacesService : IGooglePlacesService
     /// The FieldMask controls which fields are returned (and billed).
     /// We request only the fields we need for lead generation.
     /// </summary>
-    private const string FieldMask = "places.id,places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber,places.rating,places.formattedAddress";
+    private const string FieldMask = "places.id,places.displayName,places.internationalPhoneNumber,places.nationalPhoneNumber,places.rating,places.formattedAddress,places.userRatingCount,places.primaryTypeDisplayName,places.types";
 
     private readonly HttpClient _httpClient;
-    private readonly string _apiKey;
     private readonly ILogger<GooglePlacesService> _logger;
 
     public GooglePlacesService(
         HttpClient httpClient,
-        IConfiguration configuration,
         ILogger<GooglePlacesService> logger)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _apiKey = configuration["GooglePlaces:ApiKey"] ?? string.Empty;
     }
 
-    public async Task<IEnumerable<HotelLead>> SearchHotelsAsync(string query)
+    public async Task<IEnumerable<HotelLead>> SearchHotelsAsync(string location, string businessType, string apiKey)
     {
         var leads = new List<HotelLead>();
 
-        if (string.IsNullOrWhiteSpace(_apiKey))
+        if (string.IsNullOrWhiteSpace(apiKey))
         {
-            _logger.LogError("Google Places API Key is not configured.");
+            _logger.LogError("Google Places API Key is not provided.");
             return leads;
         }
 
+        var isAny = string.IsNullOrWhiteSpace(businessType) || businessType.Equals("any", StringComparison.OrdinalIgnoreCase);
+        var textQuery = isAny ? location : $"{businessType.Replace("_", " ")} in {location}";
+
         try
         {
-            var requestBody = new
+            var requestBody = new Dictionary<string, object>
             {
-                textQuery = query,
-                includedType = "lodging",
-                maxResultCount = 20
+                { "textQuery", textQuery },
+                { "maxResultCount", 20 }
             };
+
+            if (!isAny)
+            {
+                requestBody.Add("includedType", businessType);
+            }
 
             var jsonContent = JsonSerializer.Serialize(requestBody);
             using var request = new HttpRequestMessage(HttpMethod.Post, PlacesTextSearchUrl)
@@ -66,7 +70,7 @@ public class GooglePlacesService : IGooglePlacesService
             };
 
             // New API uses headers for auth and field selection (not query params)
-            request.Headers.Add("X-Goog-Api-Key", _apiKey);
+            request.Headers.Add("X-Goog-Api-Key", apiKey);
             request.Headers.Add("X-Goog-FieldMask", FieldMask);
 
             var response = await _httpClient.SendAsync(request);
@@ -86,14 +90,14 @@ public class GooglePlacesService : IGooglePlacesService
             // The new API returns a "places" array (may be absent if zero results)
             if (!jsonDocument.RootElement.TryGetProperty("places", out var placesArray))
             {
-                _logger.LogInformation("Google Places API returned zero results for query: '{Query}'", query);
+                _logger.LogInformation("Google Places API returned zero results for query: '{Query}'", textQuery);
                 return leads;
             }
 
             _logger.LogInformation(
                 "Google Places API returned {Count} results for query: '{Query}'",
                 placesArray.GetArrayLength(),
-                query);
+                textQuery);
 
             foreach (var place in placesArray.EnumerateArray())
             {
@@ -110,6 +114,30 @@ public class GooglePlacesService : IGooglePlacesService
                     ? ratingProp.GetDouble()
                     : 0.0;
 
+                var totalReviews = place.TryGetProperty("userRatingCount", out var countProp)
+                    ? countProp.GetInt32()
+                    : 0;
+
+                // Better business type mapping with fallbacks and formatting
+                string? displayBusinessType = null;
+                if (place.TryGetProperty("primaryTypeDisplayName", out var pTypeDispProp) && 
+                    pTypeDispProp.TryGetProperty("text", out var bbtextProp))
+                {
+                    displayBusinessType = bbtextProp.GetString();
+                }
+                else if (place.TryGetProperty("types", out var typesProp) && typesProp.GetArrayLength() > 0)
+                {
+                    displayBusinessType = typesProp[0].GetString();
+                }
+
+                if (string.IsNullOrEmpty(displayBusinessType) || displayBusinessType.Equals("place", StringComparison.OrdinalIgnoreCase))
+                {
+                    displayBusinessType = "Business";
+                }
+                
+                // Format: replace _ with space and Title Case
+                displayBusinessType = System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(displayBusinessType.Replace("_", " ").ToLower());
+
                 // Prefer international phone number, fallback to national
                 var phoneNumber = place.TryGetProperty("internationalPhoneNumber", out var intlPhoneProp)
                     ? intlPhoneProp.GetString()
@@ -117,15 +145,23 @@ public class GooglePlacesService : IGooglePlacesService
                         ? natPhoneProp.GetString()
                         : "Not Available";
 
+                var address = place.TryGetProperty("formattedAddress", out var addressProp)
+                    ? addressProp.GetString()
+                    : "Not Available";
+
                 leads.Add(new HotelLead
                 {
-                    Id = id ?? string.Empty,
+                    PlaceId = id ?? string.Empty,
                     Name = name ?? string.Empty,
                     PhoneNumber = phoneNumber ?? string.Empty,
                     Rating = rating,
+                    TotalReviews = totalReviews,
+                    BusinessType = displayBusinessType ?? string.Empty,
+                    Address = address ?? string.Empty,
                     Status = "New"
                 });
             }
+
         }
         catch (Exception ex)
         {

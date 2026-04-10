@@ -9,9 +9,27 @@ export const WhatsAppService = {
     }
     return cleaned;
   },
-  generateWhatsAppUrl: (phoneNumber: string, messageTemplate: string): string => {
+  generateWhatsAppUrl: (phoneNumber: string, messageTemplate: string, context?: { 
+    leadName?: string; 
+    leadCity?: string; 
+    leadRating?: string | number;
+    leadReviews?: number;
+    leadAddress?: string;
+    businessType?: string;
+  }): string => {
     const formattedPhone = WhatsAppService.formatPhoneNumber(phoneNumber);
-    const encodedMessage = encodeURIComponent(messageTemplate);
+    let finalMessage = messageTemplate;
+    
+    if (context) {
+      if (context.leadName) finalMessage = finalMessage.replace(/\[Name\]/gi, context.leadName);
+      if (context.leadCity) finalMessage = finalMessage.replace(/\[City\]/gi, context.leadCity);
+      if (context.leadRating) finalMessage = finalMessage.replace(/\[Rating\]/gi, String(context.leadRating));
+      if (context.leadReviews !== undefined) finalMessage = finalMessage.replace(/\[TotalReviews\]/gi, String(context.leadReviews));
+      if (context.leadAddress) finalMessage = finalMessage.replace(/\[Address\]/gi, context.leadAddress);
+      if (context.businessType) finalMessage = finalMessage.replace(/\[BusinessType\]/gi, context.businessType);
+    }
+    
+    const encodedMessage = encodeURIComponent(finalMessage);
     return `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
   }
 };

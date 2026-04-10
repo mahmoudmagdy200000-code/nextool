@@ -6,5 +6,5 @@ namespace NexaPMS.LeadGeneration.Application.Interfaces;
 
 public interface IGooglePlacesService
 {
-    Task<IEnumerable<HotelLead>> SearchHotelsAsync(string query);
+    Task<IEnumerable<HotelLead>> SearchHotelsAsync(string location, string businessType, string apiKey);
 }
